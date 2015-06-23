@@ -1,14 +1,18 @@
-from query_rec_class import QueryRecommender
+from query_rec import QueryRecommender
 from linrel_rec import LinrelRecommender
 import json
 
 # parameters
+# number of documents to recommend to user each iteration
 num_rec_docs = 10
+# number of keywords to recommend to user each iteration
 num_rec_keys = 10
+# number of the sample docs, which is a subset of all the documents
 num_sample_docs = 200
+# parameter of linrel, regularization term
 mu = 1
+# parameter of linrel, exploration rate
 c = 0.5
-
 
 print 'Reading data...'
 with open('arxiv_cs_t_a_k.json', 'r') as f:

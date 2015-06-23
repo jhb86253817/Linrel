@@ -36,7 +36,6 @@ class QueryRecommender:
 
     def preprocess(self):
         """Preprocessing for texts"""
-
         # if preprocessed data already saved in folder tmp, just load it
         print 'Loading preprocessed data from folder /tmp...'
         if os.path.isfile('./tmp/texts_filtered.json'):
