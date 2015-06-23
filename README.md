@@ -1,7 +1,7 @@
 Reinforcement Learning based Information Retrieval System
 
-# Package Dependencies
+# Python Packages
 - numpy
-- scipy
+- scipy (version >= 0.13)
 - nltk
 - gensim
