@@ -8,4 +8,4 @@ To run the system, you need to install these python packages:
 
 After installation, run the file `main.py` by typing
 
-python main.py
+    python main.py
