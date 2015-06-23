@@ -1,6 +1,6 @@
-Reinforcement Learning based Information Retrieval System
+## Reinforcement Learning based Information Retrieval System
 
-# Python Packages
+### Python Packages
 - numpy
 - scipy (version >= 0.13)
 - nltk
