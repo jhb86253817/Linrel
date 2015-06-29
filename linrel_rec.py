@@ -294,7 +294,7 @@ class LinrelRecommender:
         temp = X_t.T * X_t + mu*identity(X_t.shape[1])
         temp = inv(temp)
         temp = X * temp * X_t.T
-        score = (temp*y_t).toarray() + numpy.linalg.norm(temp.toarray(), axis=1).reshape((temp.shape[0],1))
+        score = (temp*y_t).toarray() + c/2 * numpy.linalg.norm(temp.toarray(), axis=1).reshape((temp.shape[0],1))
         return score
 
     def rec_docs(self):
