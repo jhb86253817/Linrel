@@ -50,16 +50,17 @@ class LinrelRecommender:
         self.titles = [p[0] for p in self.t_a_k_sample]
         self.abstracts = [p[1] for p in self.t_a_k_sample]
         self.keywords = [p[2] for p in self.t_a_k_sample]
+        self.keywords_all = [p[2] for p in self.t_a_k]
 
         self._preprocess()
 
     def resample(self, sample_docs_id_pre):
         """Randomly replace the bottom half sample docs"""
-        sample_docs_id = sample_docs_id_pre[:int(self.num_doc/2)]
-        remain_index = list(set(range(len(self.t_a_k))) - set(sample_docs_id))
-        remain_index_sample = random.sample(remain_index, int(self.num_doc/2))
-        sample_docs_id += remain_index_sample
-        self.get_samples(sample_docs_id)
+        #sample_docs_id = sample_docs_id_pre[:int(self.num_doc/2)]
+        #remain_index = list(set(range(len(self.t_a_k))) - set(sample_docs_id))
+        #remain_index_sample = random.sample(remain_index, int(self.num_doc/2))
+        #sample_docs_id += remain_index_sample
+        self.get_samples(sample_docs_id_pre[:self.num_doc])
 
     def _preprocess(self):
         # mapping keyword to keyword id
@@ -75,9 +76,12 @@ class LinrelRecommender:
         self.num_doc = len(self.keywords)
         self.num_key = len(keywords_set)
 
+        # remove keywords if not in the keywords_set for all documents
+        self.keywords_all = [[k for k in p if k in keywords_set] for p in self.keywords_all]
+
         # mapping doc id to its list of keywords
         self.dict_doc_key={}
-        for i,k in enumerate(self.keywords):
+        for i,k in enumerate(self.keywords_all):
             self.dict_doc_key[i] = k
 
         # mapping keyword to list of document ids
@@ -108,7 +112,7 @@ class LinrelRecommender:
             if selected_doc_id == '0':
                 break
             else:
-                selected_docs.append(self.sample_docs_id[score_index_valid[int(selected_doc_id)-1]])
+                selected_docs.append(score_index_valid[int(selected_doc_id)-1])
         print ''
 
         self.selected_docs += selected_docs
@@ -116,7 +120,7 @@ class LinrelRecommender:
 
         # implicit feedback
         for doc_id in selected_docs:
-            for keyword in self.dict_doc_key[self.sample_docs_id.index(doc_id)]:
+            for keyword in self.dict_doc_key[doc_id]:
                 #self.impl_feedback_keys[keyword] += 100.0/self.key_fq[keyword]/self.doc_num_key[self.sample_docs_id.index(doc_id)]
                 self.impl_feedback_keys[keyword] = 0.5
         #print '%d implicit keywords found' % len(self.impl_feedback_keys.keys())
@@ -158,14 +162,14 @@ class LinrelRecommender:
         col = []
         data = []
         for row_index,doc_id in enumerate(self.selected_docs):
-            for col_index in self.dict_doc_key[self.sample_docs_id.index(doc_id)]:
+            for col_index in self.dict_doc_key[doc_id]:
                 row.append(row_index)
                 col.append(self.dict_key_id[col_index])
                 #data.append(log(100.0/self.key_fq[col_index]/self.doc_num_key[self.sample_docs_id.index(doc_id)]))
                 data.append(1.0)
         temp_row_index = row_index + 1
         for row_index,doc_id in enumerate(self.impl_feedback_docs.keys()):
-            for col_index in self.dict_doc_key[self.sample_docs_id.index(doc_id)]:
+            for col_index in self.dict_doc_key[doc_id]:
                 row.append(row_index+temp_row_index)
                 col.append(self.dict_key_id[col_index])
                 #data.append(log(100.0/self.key_fq[col_index]/self.doc_num_key[self.sample_docs_id.index(doc_id)]))
@@ -254,12 +258,12 @@ class LinrelRecommender:
         return y_t
 
     def get_X_doc(self):
-        """Compute matrix X for all sample docs"""
-        sample_docs = range(self.num_doc)
+        """Compute matrix X for all docs"""
+        docs_all = range(len(self.t_a_k))
         row = []
         col = []
         data = []
-        for row_index,doc_id in enumerate(sample_docs):
+        for row_index,doc_id in enumerate(docs_all):
             for col_index in self.dict_doc_key[doc_id]:
                 row.append(row_index)
                 col.append(self.dict_key_id[col_index])
@@ -268,7 +272,7 @@ class LinrelRecommender:
         row = numpy.array(row)
         col = numpy.array(col)
         data = numpy.array(data)
-        X = csr_matrix((data, (row, col)), shape=(len(sample_docs),self.num_key))
+        X = csr_matrix((data, (row, col)), shape=(len(self.t_a_k),self.num_key))
         return X
 
     def get_X_key(self):
@@ -308,20 +312,19 @@ class LinrelRecommender:
         score_index = sorted(range(len(score)), key=lambda k:score[k], reverse=True)
 
         # make sure the selected docs are not recommended to user again
-        score_index_valid = [index for index in score_index if self.sample_docs_id[index] not in set(self.selected_docs) and score[index]>0]
+        score_index_valid = [index for index in score_index if index not in set(self.selected_docs) and score[index]>0]
 
         print ''
         print 'Recommended documents:\n'
         i = 1
         for doc_id in score_index_valid[:self.num_rec_docs]:
             print 'Doc %d' % i
-            print 'Title: %s' % self.t_a_k_sample[doc_id][0]
-            print 'Abstract: %s' % self.t_a_k_sample[doc_id][1]
+            print 'Title: %s' % self.t_a_k[doc_id][0]
+            print 'Abstract: %s' % self.t_a_k[doc_id][1]
             print ''
             i += 1
 
-        sample_docs_id_pre = [self.sample_docs_id[doc_id] for doc_id in score_index]
-        return score_index_valid, sample_docs_id_pre
+        return score_index_valid, score_index
 
     def rec_keys(self):
         """Recommend keywords to user"""
