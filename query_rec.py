@@ -75,8 +75,10 @@ class QueryRecommender:
         """Build LSI model upon the preprocessed texts"""
         # if LSI model already saved in folder tmp, just load it
         print 'Loading LSI model from folder /tmp...'
-        if os.path.isfile('./tmp/all.dict') and os.path.isfile('./tmp/all.lsi') and os.path.isfile('./tmp/all.index'):
+        if os.path.isfile('./tmp/all.dict') and os.path.isfile('./tmp/all.lsi') \
+        and os.path.isfile('./tmp/all.index') and os.path.isfile('./tmp/all.tfidf'):
             self.dictionary = corpora.Dictionary.load('./tmp/all.dict')
+            self.tfidf = models.TfidfModel.load('./tmp/all.tfidf')
             self.lsi = models.LsiModel.load('./tmp/all.lsi')
             self.index = similarities.MatrixSimilarity.load('./tmp/all.index')
         else:
@@ -88,13 +90,14 @@ class QueryRecommender:
             # transform texts to bag-of-words representation
             corpus = [self.dictionary.doc2bow(text) for text in self.texts_filtered]
             # transform bag-of-words to TF-IDF weights
-            tfidf = models.TfidfModel(corpus)
-            corpus_tfidf = tfidf[corpus]
+            self.tfidf = models.TfidfModel(corpus)
+            self.tfidf.save('./tmp/all.tfidf')
+            corpus_tfidf = self.tfidf[corpus]
             # build LSI model to transform TF-IDF representation to vector representation
             self.lsi = models.LsiModel(corpus_tfidf, id2word=self.dictionary, num_topics=self.topic_num)
             self.lsi.save('./tmp/all.lsi')
             # build index for fast access
-            self.index = similarities.MatrixSimilarity(self.lsi[corpus])
+            self.index = similarities.MatrixSimilarity(self.lsi[corpus_tfidf])
             self.index.save('./tmp/all.index')
 
     def sample_docs(self):
@@ -106,8 +109,10 @@ class QueryRecommender:
         self.query = [w for w in self.query if w in set(self.dictionary.values())]
         # transform query to bag-of-words
         query_bow = self.dictionary.doc2bow(self.query)
+        # transform bag-of-words to TFIDF
+        query_tfidf = self.tfidf[query_bow]
         # transform query to LSI model
-        query_lsi = self.lsi[query_bow]
+        query_lsi = self.lsi[query_tfidf]
         # get similarities of the query to all the documents
         # sims is a list of scores ordering as the documents id
         sims = self.index[query_lsi]
